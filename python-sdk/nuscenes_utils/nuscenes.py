@@ -317,9 +317,9 @@ class NuScenes:
         self.explorer.list_sample(sample_token)
 
     def render_pointcloud_in_image(self, sample_token: str, dot_size: int=5,  pointsensor_channel: str='LIDAR_TOP',
-                                   camera_channel: str='CAM_FRONT') -> None:
+                                   camera_channel: str='CAM_FRONT', save_fig_path: str='.') -> None:
         self.explorer.render_pointcloud_in_image(sample_token, dot_size, pointsensor_channel=pointsensor_channel,
-                                                 camera_channel=camera_channel)
+                                                 camera_channel=camera_channel, save_fig_path=save_fig_path)
 
     def render_sample(self, sample_token: str, box_vis_level: BoxVisibility=BoxVisibility.IN_FRONT) -> None:
         self.explorer.render_sample(sample_token, box_vis_level)
@@ -496,13 +496,14 @@ class NuScenesExplorer:
         return points, coloring, im
 
     def render_pointcloud_in_image(self, sample_token: str, dot_size: int=5, pointsensor_channel: str='LIDAR_TOP',
-                                   camera_channel: str='CAM_FRONT') -> None:
+                                   camera_channel: str='CAM_FRONT', save_fig_path: str='.') -> None:
         """
         Scatter-plots a point-cloud on top of image.
         :param sample_token: Sample token.
         :param dot_size: Scatter plot dot size.
         :param pointsensor_channel: RADAR or LIDAR channel name, e.g. 'LIDAR_TOP'.
         :param camera_channel: Camera channel name, e.g. 'CAM_FRONT'.
+        :param save_fig: path to save the figure.
         """
         sample_record = self.nusc.get('sample', sample_token)
 
@@ -515,6 +516,8 @@ class NuScenesExplorer:
         plt.imshow(im)
         plt.scatter(points[0, :], points[1, :], c=coloring, s=dot_size)
         plt.axis('off')
+        if save_fig_path != '.':
+            plt.savefig(save_fig_path)
 
     def render_sample(self, token: str, box_vis_level: BoxVisibility=BoxVisibility.IN_FRONT) -> None:
         """
