@@ -321,8 +321,8 @@ class NuScenes:
         self.explorer.render_pointcloud_in_image(sample_token, dot_size, pointsensor_channel=pointsensor_channel,
                                                  camera_channel=camera_channel, save_fig_path=save_fig_path)
 
-    def render_sample(self, sample_token: str, box_vis_level: BoxVisibility=BoxVisibility.IN_FRONT) -> None:
-        self.explorer.render_sample(sample_token, box_vis_level)
+    def render_sample(self, sample_token: str, save_fig_path: str= '.', specific_sensor: str='', box_vis_level: BoxVisibility=BoxVisibility.IN_FRONT) -> None:
+        self.explorer.render_sample(sample_token, save_fig_path, specific_sensor, box_vis_level)
 
     def render_sample_data(self, sample_data_token: str, with_anns: bool=True, box_vis_level: BoxVisibility=3,
                            axes_limit: float=40, ax: Axes=None) -> None:
@@ -512,6 +512,11 @@ class NuScenesExplorer:
         camera_token = sample_record['data'][camera_channel]
 
         points, coloring, im = self.map_pointcloud_to_image(pointsensor_token, camera_token)
+        if save_fig_path != '.':
+            im = im.convert("L")
+            white_im = Image.new('L', size=im.size, color=255)
+            im = Image.blend(im, white_im, alpha=0.1)
+
         plt.figure(figsize=(9, 16))
         plt.imshow(im)
         plt.scatter(points[0, :], points[1, :], c=coloring, s=dot_size)
@@ -519,10 +524,13 @@ class NuScenesExplorer:
         if save_fig_path != '.':
             plt.savefig(save_fig_path)
 
-    def render_sample(self, token: str, box_vis_level: BoxVisibility=BoxVisibility.IN_FRONT) -> None:
+    def render_sample(self, token: str, save_fig_path: str='.', specific_sensor: str='',
+                      box_vis_level: BoxVisibility=BoxVisibility.IN_FRONT) -> None:
         """
         Render all LIDAR and camera sample_data in sample along with annotations.
         :param token: Sample token.
+        :param save_fig_path: Path to save the output, not mandatory.
+        :param specific_sensor: Specify to plot only for a specific sensor, not mandatory.
         :param box_vis_level: If sample_data is an image, this sets required visibility for boxes.
         """
         record = self.nusc.get('sample', token)
@@ -535,6 +543,12 @@ class NuScenesExplorer:
             if sensor_modality in ['lidar', 'camera']:
                 selected_data[channel] = token
 
+        if specific_sensor != '':
+            try:
+                selected_data = {specific_sensor: selected_data[specific_sensor]}
+            except KeyError:
+                print("The specific sensor %s doesn't exists, all the sensors are displayed.")
+
         n = len(selected_data)
         fig, axes = plt.subplots(int(np.ceil(n/2)), 2, figsize=(18, 27))
 
@@ -542,6 +556,8 @@ class NuScenesExplorer:
             self.render_sample_data(sd_token, box_vis_level=box_vis_level, ax=ax)
         axes.flatten()[-1].axis('off')
         plt.tight_layout()
+        if save_fig_path != '.':
+            plt.savefig(save_fig_path)
 
     def render_sample_data(self, sample_data_token: str, with_anns: bool=True, box_vis_level: BoxVisibility=3,
                            axes_limit: float=40, ax: Axes=None) -> None:
