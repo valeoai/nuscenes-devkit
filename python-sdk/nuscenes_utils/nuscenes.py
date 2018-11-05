@@ -550,7 +550,7 @@ class NuScenesExplorer:
                 print("The specific sensor %s doesn't exists, all the sensors are displayed.")
 
         n = len(selected_data)
-        import ipdb; ipdb.set_trace()
+
         if n > 1:
             fig, axes = plt.subplots(int(np.ceil(n/2)), 2, figsize=(18, 27))
             for (_, sd_token), ax in zip(selected_data.items(), axes.flatten()):
