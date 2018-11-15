@@ -437,7 +437,7 @@ class NuScenesExplorer:
             ann_record = self.nusc.get('sample_annotation', ann_token)
             print('sample_annotation_token: {}, category: {}'.format(ann_record['token'], ann_record['category_name']))
 
-    def map_pointcloud_to_image(self, pointsensor_token: str, camera_token: str) -> Tuple:
+    def map_pointcloud_to_image(self, pointsensor_token: str, camera_token: str, velocity_color: bool=False) -> Tuple:
         """
         Given a point sensor (lidar/radar) token and camera sample_data token, load point-cloud and map it to the image
         plane.
@@ -477,8 +477,14 @@ class NuScenesExplorer:
         # Grab the depths (camera frame z axis points away from the camera).
         depths = pc.points[2, :]
 
-        # Set the height to be the coloring.
-        coloring = pc.points[2, :]
+        if velocity_color:
+            # Velocity coloring
+            n2_velocity = np.sqrt(pc.points[6, :]**2 + pc.points[7, :]**2)
+            n2_velocity_normed = (n2_velocity - np.min(n2_velocity)) / (np.max(n2_velocity) - np.min(n2_velocity))
+            coloring = n2_velocity_normed*255
+        else:
+            # Set the height to be the coloring.
+            coloring = pc.points[2, :]
 
         # Take the actual picture (matrix multiplication with camera-matrix + renormalization).
         points = view_points(pc.points[:3, :], np.array(cs_record['camera_intrinsic']), normalize=True)
@@ -496,7 +502,8 @@ class NuScenesExplorer:
         return points, coloring, im
 
     def render_pointcloud_in_image(self, sample_token: str, dot_size: int=5, pointsensor_channel: str='LIDAR_TOP',
-                                   camera_channel: str='CAM_FRONT', save_fig_path: str='.') -> None:
+                                   camera_channel: str='CAM_FRONT', save_fig_path: str='.',
+                                   velocity_color: str=False) -> None:
         """
         Scatter-plots a point-cloud on top of image.
         :param sample_token: Sample token.
@@ -511,7 +518,8 @@ class NuScenesExplorer:
         pointsensor_token = sample_record['data'][pointsensor_channel]
         camera_token = sample_record['data'][camera_channel]
 
-        points, coloring, im = self.map_pointcloud_to_image(pointsensor_token, camera_token)
+        points, coloring, im = self.map_pointcloud_to_image(pointsensor_token, camera_token,
+                                                            velocity_color=velocity_color)
         if save_fig_path != '.':
             im = im.convert("L")
             white_im = Image.new('L', size=im.size, color=255)
